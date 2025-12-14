@@ -290,7 +290,7 @@ CREATE TRIGGER update_conversations_updated_at
 -- Function for vector similarity search
 CREATE OR REPLACE FUNCTION match_document_chunks(
   query_embedding vector(1536),
-  course_id UUID,
+  p_course_id UUID,
   match_threshold float DEFAULT 0.7,
   match_count int DEFAULT 5
 )
@@ -314,7 +314,7 @@ BEGIN
     document_chunks.chunk_index,
     1 - (document_chunks.embedding <=> query_embedding) AS similarity
   FROM document_chunks
-  WHERE document_chunks.course_id = match_document_chunks.course_id
+  WHERE document_chunks.course_id = p_course_id
     AND 1 - (document_chunks.embedding <=> query_embedding) > match_threshold
   ORDER BY document_chunks.embedding <=> query_embedding
   LIMIT match_count;

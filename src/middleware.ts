@@ -35,10 +35,10 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Public routes
-  if (pathname.startsWith('/auth') || pathname === '/') {
-    if (user) {
-      // Redirect authenticated users away from auth pages
+  // Public routes - allow auth pages and auth API routes
+  if (pathname.startsWith('/auth') || pathname.startsWith('/api/auth') || pathname === '/') {
+    if (user && pathname.startsWith('/auth') && !pathname.startsWith('/api/auth')) {
+      // Redirect authenticated users away from auth pages (but not API routes)
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     return supabaseResponse
@@ -82,4 +82,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
-
