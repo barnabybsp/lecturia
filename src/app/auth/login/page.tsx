@@ -22,16 +22,20 @@ export default function LoginPage() {
         body: JSON.stringify({ email, role }),
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setMessage('Check your email for the magic link!')
-      } else {
+      // If response is a redirect (status 307/302), browser will handle it automatically
+      // For error cases, parse the JSON response
+      if (response.status >= 400) {
+        const data = await response.json()
         setMessage(data.error || 'Something went wrong')
+        setLoading(false)
+      } else {
+        // Success - redirect will happen automatically via server response
+        // But also manually redirect as fallback
+        const dashboardPath = role === 'lecturer' ? '/lecturer' : '/student'
+        window.location.href = dashboardPath
       }
     } catch (error) {
       setMessage('Something went wrong. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
@@ -115,7 +119,7 @@ export default function LoginPage() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Sending...' : 'Send magic link'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>

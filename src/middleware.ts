@@ -37,8 +37,8 @@ export async function middleware(request: NextRequest) {
 
   // Public routes - allow auth pages and auth API routes
   if (pathname.startsWith('/auth') || pathname.startsWith('/api/auth') || pathname === '/') {
-    if (user && pathname.startsWith('/auth') && !pathname.startsWith('/api/auth')) {
-      // Redirect authenticated users away from auth pages (but not API routes)
+    if (user && (pathname.startsWith('/auth') || pathname === '/') && !pathname.startsWith('/api/auth')) {
+      // Redirect authenticated users away from auth pages and home page (but not API routes)
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     return supabaseResponse

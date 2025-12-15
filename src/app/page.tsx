@@ -1,25 +1,5 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { DashboardLayout } from "@/components/dashboard-layout"
 
-export default async function HomePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (user) {
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (userData?.role === 'lecturer') {
-      redirect('/lecturer')
-    } else {
-      redirect('/student')
-    }
-  }
-
-  redirect('/auth/login')
+export default function Page() {
+  return <DashboardLayout />
 }

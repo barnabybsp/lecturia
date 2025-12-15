@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import CoursesList from '@/components/student/CoursesList'
+import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
+import type { Course } from '@/types/database'
 
 export default async function StudentDashboard() {
   const supabase = await createClient()
@@ -18,22 +19,12 @@ export default async function StudentDashboard() {
     .eq('student_id', user.id)
     .order('enrolled_at', { ascending: false })
 
-  const courses = enrollments?.map((enrollment) => enrollment.courses) || []
+  const courses = (enrollments?.map((enrollment) => enrollment.courses).filter((course): course is Course => course !== null) || []) as Course[]
 
-  return (
-    <div className="px-4 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-3xl font-semibold text-gray-900">My Courses</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            Access your enrolled courses and chat with AI about course materials
-          </p>
-        </div>
-      </div>
-      <div className="mt-8">
-        <CoursesList courses={courses} />
-      </div>
-    </div>
-  )
+  // Get user metadata for display
+  const userName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]
+  const userEmail = user.email
+
+  return <StudentDashboardLayout courses={courses} userName={userName} userEmail={userEmail} />
 }
 
