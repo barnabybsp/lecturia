@@ -24,7 +24,7 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
       input: texts,
     })
 
-    return response.data.map((item) => item.embedding)
+    return response.data.map((item: { embedding: number[] }) => item.embedding)
   } catch (error) {
     throw new Error(`Failed to generate embeddings: ${error}`)
   }

@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import LecturerNav from '@/components/lecturer/LecturerNav'
 
 export default async function LecturerLayout({
   children,
@@ -26,13 +25,6 @@ export default async function LecturerLayout({
     redirect('/student')
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <LecturerNav />
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {children}
-      </main>
-    </div>
-  )
+  // The new dashboard component handles its own layout
+  return <>{children}</>
 }
-

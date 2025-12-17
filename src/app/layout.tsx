@@ -2,17 +2,18 @@ import type React from "react"
 import type { Metadata } from "next"
 
 import { Analytics } from "@vercel/analytics/next"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
-import { Geist_Mono, Rubik as V0_Font_Rubik, Geist_Mono as V0_Font_Geist_Mono } from 'next/font/google'
+import { Inter, Geist_Mono } from 'next/font/google'
 
 // Initialize fonts
-const _rubik = V0_Font_Rubik({ subsets: ['latin'], weight: ["300","400","500","600","700","800","900"] })
-const _geistMono = V0_Font_Geist_Mono({ subsets: ['latin'], weight: ["100","200","300","400","500","600","700","800","900"] })
+const inter = Inter({ subsets: ['latin'] })
+const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "StudyAI - AI Chatbot for University Students",
-  description: "Learn smarter with AI-powered study assistance",
+  title: "Lecturia - AI-Powered Learning Assistant",
+  description: "AI-powered course assistant for university lecturers and students",
   generator: "v0.app",
   icons: {
     icon: [
@@ -39,9 +40,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-white border" style={{ borderColor: 'rgba(5, 5, 5, 1)' }}>
-      <body className={`font-sans antialiased`}>
+    <html lang="en">
+      <body className={`font-sans antialiased ${inter.className}`}>
         {children}
+        <Toaster />
         <Analytics />
       </body>
     </html>
