@@ -24,7 +24,7 @@ Use the context above to answer questions. If the answer is not in the context, 
     }))
 
   const stream = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250514',
     max_tokens: 1024,
     system: systemPrompt,
     messages: anthropicMessages as any,

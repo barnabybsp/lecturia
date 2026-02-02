@@ -1,0 +1,69 @@
+# Lecturia Project Rules
+
+## About This Project
+Lecturia is an educational platform where lecturers upload course materials and students can chat with an AI assistant that answers questions based on those materials (using RAG - Retrieval Augmented Generation).
+
+## User Roles
+- **Lecturer**: Creates courses, uploads documents (PDF, Word, text), manages students
+- **Student**: Joins courses via invite code, chats with AI about course content
+
+## Tech Stack
+- **Framework**: Next.js 16 with App Router (React 19)
+- **Language**: TypeScript (strict mode)
+- **Database & Auth**: Supabase (PostgreSQL + Auth + Storage)
+- **Styling**: Tailwind CSS v4
+- **UI Components**: shadcn/ui (Radix primitives)
+- **AI/LLM**: OpenAI for embeddings and chat
+- **Forms**: React Hook Form + Zod validation
+
+## Project Structure
+```
+src/
+├── app/              # Next.js App Router pages and API routes
+│   ├── api/          # Backend API endpoints
+│   ├── lecturer/     # Lecturer dashboard pages
+│   └── student/      # Student dashboard pages
+├── components/       # React components
+│   ├── ui/           # shadcn/ui base components
+│   ├── lecturer/     # Lecturer-specific components
+│   └── student/      # Student-specific components
+├── lib/              # Utility functions and configurations
+│   ├── supabase/     # Supabase client setup (client.ts, server.ts, admin.ts)
+│   ├── llm/          # LLM integrations (OpenAI, Anthropic)
+│   ├── embeddings/   # Text embedding generation
+│   ├── rag/          # RAG search functionality
+│   └── file-processors/  # PDF, Word, text file parsing
+└── types/            # TypeScript type definitions
+```
+
+## Coding Guidelines
+
+### General
+- Always use TypeScript with proper types - avoid `any`
+- Use async/await instead of .then() chains
+- Handle errors gracefully with try/catch blocks
+- Add meaningful comments for complex logic
+
+### React & Next.js
+- Use Server Components by default (no 'use client' unless needed)
+- Add 'use client' only for: hooks, browser APIs, event handlers, state
+- Use the App Router patterns (not Pages Router)
+- API routes go in `src/app/api/` using route.ts files
+
+### Supabase
+- Client-side: use `createClient()` from `@/lib/supabase/client`
+- Server-side: use `createClient()` from `@/lib/supabase/server`
+- Admin operations: use `createAdminClient()` from `@/lib/supabase/admin`
+- Always check for auth errors and handle them
+
+### Styling
+- Use Tailwind CSS utility classes
+- Use shadcn/ui components from `@/components/ui/`
+- Follow existing component patterns for consistency
+- Use the `cn()` utility for conditional classes
+
+## Communication Style
+Always explain code changes as if I'm not a developer - I'm learning while building this project. Include:
+- What the change does in plain English
+- Why it's needed
+- Any important concepts I should understand

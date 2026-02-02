@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
+import DevToolbar from "@/components/DevToolbar"
 import "./globals.css"
 
 import { Inter, Geist_Mono } from 'next/font/google'
@@ -45,6 +46,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         <Analytics />
+        <DevToolbar />
       </body>
     </html>
   )

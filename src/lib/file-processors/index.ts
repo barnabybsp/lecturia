@@ -1,6 +1,5 @@
 import { extractTextFromPDF } from './pdf'
 import { extractTextFromWord } from './word'
-import { extractTextFromExcel } from './excel'
 import { extractTextFromText } from './text'
 
 export interface FileProcessor {
@@ -13,10 +12,6 @@ const processors: Record<string, FileProcessor> = {
     extractText: extractTextFromWord,
   },
   'application/msword': { extractText: extractTextFromWord },
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
-    extractText: extractTextFromExcel,
-  },
-  'application/vnd.ms-excel': { extractText: extractTextFromExcel },
   'text/plain': { extractText: extractTextFromText },
   'text/markdown': { extractText: extractTextFromText },
   'text/csv': { extractText: extractTextFromText },
@@ -27,8 +22,6 @@ const extensionToMimeType: Record<string, string> = {
   pdf: 'application/pdf',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   doc: 'application/msword',
-  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  xls: 'application/vnd.ms-excel',
   txt: 'text/plain',
   md: 'text/markdown',
   csv: 'text/csv',

@@ -7,21 +7,24 @@ export default async function CoursePage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  // TEMPORARILY DISABLED FOR DEVELOPMENT - Authentication checks commented out
+  // TODO: Re-enable authentication once lecturer and student dashboards are built
+  
   const { id } = await params
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/auth/login')
-  }
+  // if (!user) {
+  //   redirect('/auth/login')
+  // }
 
   const { data: course } = await supabase
     .from('courses')
     .select('*')
     .eq('id', id)
-    .eq('lecturer_id', user.id)
+    // .eq('lecturer_id', user.id) // Temporarily disabled for development
     .single()
 
   if (!course) {

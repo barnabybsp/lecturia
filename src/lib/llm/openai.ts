@@ -22,7 +22,7 @@ Use the context above to answer questions. If the answer is not in the context, 
     model: 'gpt-4o-mini', // or 'gpt-4o' for better quality
     messages: [systemMessage, ...messages],
     stream: true,
-    temperature: 0.7,
+    temperature: 0.2,
   })
 
   for await (const chunk of stream) {

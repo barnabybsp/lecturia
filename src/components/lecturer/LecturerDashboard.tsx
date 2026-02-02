@@ -93,6 +93,9 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
   const [newCourseDescription, setNewCourseDescription] = useState("")
   const [isCreatingCourse, setIsCreatingCourse] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [courseToDelete, setCourseToDelete] = useState<CourseWithEnrollment | null>(null)
+  const [isDeletingCourse, setIsDeletingCourse] = useState(false)
   const { toast } = useToast()
 
   // Fetch documents when active course changes
@@ -152,17 +155,36 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
 
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+
+    // Validate form
+    if (!newCourseName.trim()) {
+      toast({
+        title: "Error",
+        description: "Course name is required",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsCreatingCourse(true)
 
+    // Store course name before clearing for toast message
+    const courseNameToCreate = newCourseName
+
     try {
+      console.log('Creating course:', { name: newCourseName, description: newCourseDescription })
       const response = await fetch('/api/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newCourseName, description: newCourseDescription }),
       })
 
+      console.log('Response status:', response.status)
+
       if (response.ok) {
         const newCourse = await response.json()
+        console.log('Course created successfully:', newCourse)
         setCourses([newCourse, ...courses])
         setActiveCourse(newCourse)
         setIsCreateCourseOpen(false)
@@ -170,15 +192,24 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
         setNewCourseDescription("")
         toast({
           title: "Course Created",
-          description: `${newCourseName} has been created successfully`,
+          description: `${courseNameToCreate} has been created successfully`,
         })
         router.refresh()
+      } else {
+        // Handle API errors
+        const errorData = await response.json().catch(() => ({ error: 'Failed to create course' }))
+        console.error('Error creating course:', errorData)
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to create course",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Error creating course:', error)
       toast({
         title: "Error",
-        description: "Failed to create course",
+        description: "Failed to create course. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -188,7 +219,7 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !activeCourse) return
-    
+
     const file = e.target.files[0]
     if (!file) return
 
@@ -248,6 +279,53 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
     }
   }
 
+  const handleDeleteCourse = async () => {
+    if (!courseToDelete) return
+
+    setIsDeletingCourse(true)
+    try {
+      const response = await fetch(`/api/courses?id=${courseToDelete.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Remove course from list
+        const updatedCourses = courses.filter(c => c.id !== courseToDelete.id)
+        setCourses(updatedCourses)
+
+        // If the deleted course was active, set a new active course or null
+        if (activeCourse?.id === courseToDelete.id) {
+          setActiveCourse(updatedCourses[0] || null)
+          setDocuments([])
+        }
+
+        setIsDeleteDialogOpen(false)
+        setCourseToDelete(null)
+        toast({
+          title: "Course Deleted",
+          description: `${courseToDelete.name} has been deleted successfully`,
+        })
+        router.refresh()
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete course' }))
+        toast({
+          title: "Error",
+          description: errorData.error || "Failed to delete course",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error deleting course:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete course. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeletingCourse(false)
+    }
+  }
+
   const handleSignOut = async () => {
     await fetch('/api/auth/signout', { method: 'POST' })
     router.push('/auth/login')
@@ -255,7 +333,15 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
 
   // Create Course Dialog - rendered once at the top level to avoid hydration issues
   const createCourseDialog = (
-    <Dialog open={isCreateCourseOpen} onOpenChange={setIsCreateCourseOpen}>
+    <Dialog
+      open={isCreateCourseOpen}
+      onOpenChange={(open) => {
+        // Only allow closing if not currently creating a course
+        if (!isCreatingCourse) {
+          setIsCreateCourseOpen(open)
+        }
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Course</DialogTitle>
@@ -263,7 +349,7 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
             Add a new course to manage your teaching materials and student interactions.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleCreateCourse} className="space-y-4">
+        <form onSubmit={handleCreateCourse} className="space-y-4" noValidate>
           <div>
             <label className="block text-sm font-medium mb-1">Course Name</label>
             <Input
@@ -294,39 +380,19 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
     </Dialog>
   )
 
-  if (!activeCourse && courses.length === 0) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="p-8 max-w-md mx-auto text-center">
-          <GraduationCap className="h-16 w-16 text-primary mx-auto mb-4" weight="fill" />
-          <h2 className="text-2xl font-bold mb-2">Welcome to Lecturia</h2>
-          <p className="text-muted-foreground mb-6">
-            Create your first course to get started with your AI-powered teaching assistant.
-          </p>
-          <Button 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            onClick={() => setIsCreateCourseOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Your First Course
-          </Button>
-        </Card>
-        {createCourseDialog}
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 h-16 bg-card shadow z-50 flex items-center justify-between px-6 border-b">
+      <nav className="fixed top-0 left-0 right-0 h-16 bg-card shadow z-50 flex items-center justify-between px-6 border-b border-border">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <X className="h-6 w-6" /> : <List className="h-6 w-6" />}
           </Button>
-          <div className="flex items-center gap-2 cursor-pointer">
-            <GraduationCap className="h-8 w-8 text-primary" weight="fill" />
-            <span className="text-xl font-bold text-foreground">Lecturia</span>
+          <div className="flex items-center gap-3 cursor-pointer">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-700">
+              <GraduationCap className="h-6 w-6 text-primary-foreground" weight="fill" />
+            </div>
+            <span className="text-xl font-semibold text-foreground">Lecturia</span>
           </div>
         </div>
 
@@ -375,95 +441,109 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
             </div>
           )}
 
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full w-10 h-10"
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-            >
-              <User className="h-5 w-5" />
-            </Button>
-
-            {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-card rounded-md shadow-lg border py-1 z-50">
-                <div className="px-4 py-2 text-sm text-muted-foreground border-b">
-                  {userEmail}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-foreground">Welcome Lecturer</span>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full w-10 h-10"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+              >
+                <div className="h-10 w-10 rounded-full bg-violet-700 flex items-center justify-center text-primary-foreground font-medium border border-black">
+                  {userEmail ? userEmail[0].toUpperCase() : "L"}
                 </div>
-                <button className="w-full px-4 py-2 text-left hover:bg-accent flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Profile
-                </button>
-                <button className="w-full px-4 py-2 text-left hover:bg-accent flex items-center gap-2">
-                  <GearSix className="h-4 w-4" />
-                  Settings
-                </button>
-                <button 
-                  onClick={handleSignOut}
-                  className="w-full px-4 py-2 text-left hover:bg-accent flex items-center gap-2 text-destructive"
-                >
-                  <SignOut className="h-4 w-4" />
-                  Logout
-                </button>
-              </div>
-            )}
+              </Button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-card rounded-md shadow-lg border py-1 z-50">
+                  <div className="px-4 py-2 text-sm text-muted-foreground border-b">
+                    {userEmail}
+                  </div>
+                  <button className="w-full px-4 py-2 text-left hover:bg-accent flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Profile
+                  </button>
+                  <button className="w-full px-4 py-2 text-left hover:bg-accent flex items-center gap-2">
+                    <GearSix className="h-4 w-4" />
+                    Settings
+                  </button>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full px-4 py-2 text-left hover:bg-accent flex items-center gap-2 text-destructive"
+                  >
+                    <SignOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Left Sidebar */}
       <aside
-        className={`fixed left-0 top-16 bottom-0 w-64 bg-sidebar border-r border-sidebar-border overflow-y-auto transition-transform duration-300 z-40 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}
+        className={`fixed left-0 top-16 bottom-0 w-64 bg-card border-r border-border overflow-y-auto transition-transform duration-300 z-40 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0`}
       >
         <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4 text-sidebar-foreground">My Courses</h2>
-          <div className="space-y-2">
-            {courses.map((course) => (
-              <button
-                key={course.id}
-                onClick={() => {
-                  setActiveCourse(course)
-                  setSidebarOpen(false)
-                }}
-                className={`w-full text-left p-3 rounded-md transition-colors ${
-                  course.id === activeCourse?.id
-                    ? "bg-sidebar-accent border-l-4 border-sidebar-primary"
-                    : "hover:bg-sidebar-accent/50"
-                }`}
-              >
-                <div className="font-medium text-sm text-sidebar-foreground">
-                  {course.name}
-                </div>
-                <div className="text-xs text-sidebar-foreground/60 mt-1 flex items-center justify-between">
-                  <span>{course.enrollment_count || 0} students</span>
-                  {course.id === activeCourse?.id && (
-                    <span className="flex items-center gap-1 text-primary">
-                      <CheckCircle className="h-3 w-3" weight="fill" />
-                      Active
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <Button 
-            variant="outline" 
-            className="w-full mt-4 bg-transparent" 
-            size="sm"
+          <Button
+            className="w-full justify-start gap-2 text-primary-foreground hover:bg-violet-600 bg-violet-700 mb-4"
+            style={{ color: 'rgba(0, 0, 0, 1)' }}
             onClick={() => setIsCreateCourseOpen(true)}
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Course
+            <Plus className="h-4 w-4" />
+            <span>New Course</span>
           </Button>
+
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-3">Your Courses</h2>
+          <div className="space-y-1">
+            {courses.map((course) => (
+              <div
+                key={course.id}
+                className="group relative w-full"
+              >
+                <button
+                  onClick={() => {
+                    setActiveCourse(course)
+                    setSidebarOpen(false)
+                  }}
+                  className={`flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors border ${course.id === activeCourse?.id
+                    ? "bg-violet-700 text-white"
+                    : "text-violet-500 hover:bg-sidebar-accent/50"
+                    }`}
+                >
+                  <FileText className="mt-0.5 h-4 w-4 shrink-0" weight="fill" />
+                  <div className="flex-1 overflow-hidden">
+                    <div className="font-medium text-sm">
+                      {course.name}
+                    </div>
+                    <div className="truncate text-xs text-foreground">
+                      {course.enrollment_count || 0} students
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCourseToDelete(course)
+                    setIsDeleteDialogOpen(true)
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-destructive"
+                  title="Delete course"
+                >
+                  <Trash className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="lg:ml-64 mt-16 p-4 md:p-8">
-        {activeCourse && (
+        {activeCourse ? (
           <div className="max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold text-foreground mb-2">
               {activeCourse.name}
@@ -493,9 +573,9 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
                                 </div>
                               </div>
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="text-destructive"
                               onClick={() => handleDeleteDocument(doc.id)}
                             >
@@ -516,7 +596,7 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
                         accept=".pdf,.doc,.docx,.txt,.pptx,.xlsx"
                         disabled={isUploading}
                       />
-                      <Button 
+                      <Button
                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                         onClick={() => document.getElementById('file-upload')?.click()}
                         disabled={isUploading}
@@ -715,12 +795,35 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
               </Tabs>
             </Card>
           </div>
+        ) : (
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+              <Card className="p-8 max-w-md w-full">
+                <GraduationCap className="h-16 w-16 text-primary mx-auto mb-4" weight="fill" />
+                <h2 className="text-2xl font-bold mb-2 text-foreground">Welcome to Lecturia</h2>
+                <p className="text-muted-foreground mb-6">
+                  {courses.length === 0
+                    ? "Create your first course to get started with your AI-powered teaching assistant."
+                    : "Select a course from the sidebar to view its details and manage your materials."}
+                </p>
+                {courses.length === 0 && (
+                  <Button
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                    onClick={() => setIsCreateCourseOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Course
+                  </Button>
+                )}
+              </Card>
+            </div>
+          </div>
         )}
       </main>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -728,6 +831,39 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
 
       {/* Create Course Dialog - rendered once to avoid hydration issues */}
       {createCourseDialog}
+
+      {/* Delete Course Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Course</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{courseToDelete?.name}"? This action cannot be undone and will delete all associated documents, conversations, and enrollments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false)
+                setCourseToDelete(null)
+              }}
+              disabled={isDeletingCourse}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleDeleteCourse}
+              disabled={isDeletingCourse}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            >
+              {isDeletingCourse ? "Deleting..." : "Delete Course"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

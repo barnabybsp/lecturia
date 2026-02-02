@@ -7,29 +7,36 @@ export default async function StudentCoursePage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  // TEMPORARILY DISABLED FOR DEVELOPMENT - Authentication checks commented out
+  // TODO: Re-enable authentication once lecturer and student dashboards are built
+  
   const { id } = await params
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/auth/login')
-  }
+  // if (!user) {
+  //   redirect('/auth/login')
+  // }
 
-  // Verify enrollment
-  const { data: enrollment } = await supabase
-    .from('course_enrollments')
-    .select('*, courses(*)')
-    .eq('course_id', id)
-    .eq('student_id', user.id)
+  // Verify enrollment - Temporarily fetch course directly for development
+  const { data: course } = await supabase
+    .from('courses')
+    .select('*')
+    .eq('id', id)
     .single()
 
-  if (!enrollment) {
+  // const { data: enrollment } = await supabase
+  //   .from('course_enrollments')
+  //   .select('*, courses(*)')
+  //   .eq('course_id', id)
+  //   .eq('student_id', user.id) // Temporarily disabled for development
+  //   .single()
+
+  if (!course) {
     notFound()
   }
-
-  const course = enrollment.courses as any
 
   return (
     <div>

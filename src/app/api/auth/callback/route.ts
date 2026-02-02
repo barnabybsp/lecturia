@@ -38,14 +38,33 @@ export async function GET(request: NextRequest) {
     }
 
     if (data.user) {
-      // Update user role if provided in metadata
-      const role = data.user.user_metadata?.role
+      // Get role from metadata or users table
+      let role = data.user.user_metadata?.role
+      
+      // If role is in metadata, update users table
       if (role) {
         const adminClient = createAdminClient()
         await adminClient
           .from('users')
-          .update({ role })
+          .upsert({
+            id: data.user.id,
+            email: data.user.email!,
+            role,
+          }, {
+            onConflict: 'id'
+          })
+      } else {
+        // If not in metadata, try to get from users table
+        const adminClient = createAdminClient()
+        const { data: userData } = await adminClient
+          .from('users')
+          .select('role')
           .eq('id', data.user.id)
+          .single()
+        
+        if (userData?.role) {
+          role = userData.role
+        }
       }
 
       // Return the redirect response with cookies already set

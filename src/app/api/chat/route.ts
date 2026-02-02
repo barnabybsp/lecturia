@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { message, conversationId, courseId, provider = 'openai' } =
+  const { message, conversationId, courseId, provider = 'anthropic' } =
     await request.json()
 
   if (!message || !courseId) {
