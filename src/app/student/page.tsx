@@ -1,29 +1,32 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
 import type { Course } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 export default async function StudentDashboard() {
-  // TEMPORARILY DISABLED FOR DEVELOPMENT - Authentication checks commented out
-  // TODO: Re-enable authentication once lecturer and student dashboards are built
-  
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // if (!user) {
-  //   redirect('/auth/login')
-  // }
+  if (!user) {
+    redirect('/auth/login')
+  }
 
-  // Temporarily fetch all courses for development (remove student_id filter)
-  const { data: enrollments } = await supabase
+  const adminClient = createAdminClient()
+
+  const { data: enrollments } = await adminClient
     .from('course_enrollments')
-    .select('*, courses(*)')
-    // .eq('student_id', user.id) // Temporarily disabled for development
+    .select('course_id, courses(*)')
+    .eq('student_id', user.id)
     .order('enrolled_at', { ascending: false })
 
-  const courses = (enrollments?.map((enrollment) => enrollment.courses).filter((course): course is Course => course !== null) || []) as Course[]
+  const courses = (enrollments
+    ?.map((enrollment) => enrollment.courses as unknown as Course)
+    .filter((course): course is Course => course !== null)) ?? []
 
   // Get user metadata for display (with fallback for development)
   const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Student'

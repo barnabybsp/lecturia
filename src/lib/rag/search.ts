@@ -21,7 +21,7 @@ export async function searchSimilarChunks(
   // Search for similar chunks using pgvector
   const { data, error } = await adminClient.rpc('match_document_chunks', {
     query_embedding: queryEmbedding,
-    course_id: courseId,
+    p_course_id: courseId,
     match_threshold: 0.7,
     match_count: limit,
   })

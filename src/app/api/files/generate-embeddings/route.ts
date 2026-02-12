@@ -5,6 +5,23 @@ import { getProcessor, canProcessFile, chunkText } from '@/lib/file-processors'
 import { generateEmbeddings } from '@/lib/embeddings/openai'
 
 export async function POST(request: Request) {
+  // This endpoint is called internally by the upload route.
+  // Authenticate either via user session (direct call) or internal API key.
+  const internalKey = request.headers.get('x-internal-key')
+  const isInternalCall =
+    internalKey && process.env.INTERNAL_API_KEY && internalKey === process.env.INTERNAL_API_KEY
+
+  if (!isInternalCall) {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
   const { documentIds } = await request.json()
 
   if (!documentIds || !Array.isArray(documentIds)) {

@@ -7,10 +7,28 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized. Create or sign in with a lecturer account first.' },
+      { status: 401 }
+    )
   }
+
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (userProfile?.role !== 'lecturer') {
+    return NextResponse.json(
+      { error: 'Only lecturers can create courses.' },
+      { status: 403 }
+    )
+  }
+
+  const adminClient = createAdminClient()
+  const lecturerId = user.id
 
   const { name, description } = await request.json()
 
@@ -22,7 +40,6 @@ export async function POST(request: Request) {
   }
 
   // Generate unique invite code
-  const adminClient = createAdminClient()
   const { data: inviteCodeData } = await adminClient.rpc('generate_invite_code')
   const inviteCode = inviteCodeData || Math.random().toString(36).substring(2, 10).toUpperCase()
 
@@ -31,7 +48,7 @@ export async function POST(request: Request) {
   const { data, error } = await adminClient
     .from('courses')
     .insert({
-      lecturer_id: user.id,
+      lecturer_id: lecturerId,
       name,
       description: description || null,
       invite_code: inviteCode,
@@ -53,13 +70,31 @@ export async function GET() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized. Create or sign in with a lecturer account first.' },
+      { status: 401 }
+    )
   }
+
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (userProfile?.role !== 'lecturer') {
+    return NextResponse.json(
+      { error: 'Only lecturers can view their courses.' },
+      { status: 403 }
+    )
+  }
+
+  const lecturerId = user.id
 
   const { data, error } = await supabase
     .from('courses')
     .select('*')
-    .eq('lecturer_id', user.id)
+    .eq('lecturer_id', lecturerId)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -76,8 +111,27 @@ export async function DELETE(request: Request) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized. Create or sign in with a lecturer account first.' },
+      { status: 401 }
+    )
   }
+
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (userProfile?.role !== 'lecturer') {
+    return NextResponse.json(
+      { error: 'Only lecturers can delete courses.' },
+      { status: 403 }
+    )
+  }
+
+  const adminClient = createAdminClient()
+  const lecturerId = user.id
 
   const { searchParams } = new URL(request.url)
   const courseId = searchParams.get('id')
@@ -91,8 +145,6 @@ export async function DELETE(request: Request) {
 
   // Use admin client to bypass RLS for both verification and deletion
   // We've already verified the user is authenticated, so this is safe
-  const adminClient = createAdminClient()
-  
   // Verify the user owns this course
   const { data: course } = await adminClient
     .from('courses')
@@ -104,7 +156,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Course not found' }, { status: 404 })
   }
 
-  if (course.lecturer_id !== user.id) {
+  if (course.lecturer_id !== lecturerId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
@@ -120,4 +172,3 @@ export async function DELETE(request: Request) {
 
   return NextResponse.json({ success: true })
 }
-

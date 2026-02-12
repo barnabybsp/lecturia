@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { GraduationCap, LogOut, User } from "lucide-react"
+import { GraduationCap, LogOut, User, Settings } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { useRouter } from "next/navigation"
@@ -18,9 +18,10 @@ import { useRouter } from "next/navigation"
 interface HeaderProps {
   userName?: string
   userEmail?: string
+  variant?: "student" | "lecturer"
 }
 
-export function Header({ userName, userEmail }: HeaderProps) {
+export function Header({ userName, userEmail, variant = "student" }: HeaderProps) {
   const [initials, setInitials] = useState("")
   const { signOut } = useAuth()
   const router = useRouter()
@@ -44,24 +45,31 @@ export function Header({ userName, userEmail }: HeaderProps) {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border px-6 bg-card-foreground">
+    <header className="flex h-16 items-center justify-between border-b border-border px-6 bg-card shadow-sm">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-700">
-          <GraduationCap className="h-6 w-6 text-primary-foreground" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-md">
+          <GraduationCap className="h-5 w-5 text-primary-foreground" />
         </div>
-        <span className="text-xl font-semibold text-card">{"Lecturia"}</span>
+        <div className="flex flex-col">
+          <span className="text-xl font-display font-semibold text-foreground tracking-tight">Lecturia</span>
+          <span className="text-xs text-muted-foreground capitalize">{variant} Portal</span>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4">
         {userName && (
-          <span className="text-sm font-medium text-background" style={{ color: 'var(--background)' }}>Welcome {userName}</span>
+          <span className="text-sm font-medium text-muted-foreground hidden sm:block">
+            Welcome, <span className="text-foreground">{userName}</span>
+          </span>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10">
-                <AvatarImage className="bg-violet-700" src="/placeholder.svg?height=40&width=40" alt="User" />
-                <AvatarFallback className="bg-primary text-primary-foreground border border-black" style={{ borderWidth: '1px', borderColor: 'rgba(0, 0, 0, 1)' }}>{initials || "U"}</AvatarFallback>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full ring-2 ring-border hover:ring-primary/50 transition-all">
+              <Avatar className="h-9 w-9">
+                <AvatarImage src="/placeholder.svg?height=40&width=40" alt="User" />
+                <AvatarFallback className="bg-primary text-primary-foreground font-medium">
+                  {initials || "U"}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -75,7 +83,16 @@ export function Header({ userName, userEmail }: HeaderProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer">
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sign out</span>
             </DropdownMenuItem>

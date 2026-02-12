@@ -8,12 +8,14 @@ export async function* streamChatCompletion(
   messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>,
   context: string
 ): AsyncGenerator<string, void, unknown> {
-  const systemPrompt = `You are a helpful AI assistant for a course. Answer questions based on the provided course materials. 
+  const systemPrompt = `You are the AI study assistant for this class. Your job is to help the student learn clearly and confidently.
+
+Use only the course materials provided in the context when answering. If the context does not contain the answer, say that you do not have it and suggest what the student should ask their lecturer or check in their notes.
+
+Respond in short, student-friendly paragraphs. Use bullet points for steps or lists. If a question is unclear, ask a brief clarifying question.
 
 Context from course materials:
-${context}
-
-Use the context above to answer questions. If the answer is not in the context, say so. Be concise and helpful.`
+${context || '[No course materials found for this question]'}`
 
   // Convert messages to Anthropic format
   const anthropicMessages = messages

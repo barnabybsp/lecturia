@@ -3,28 +3,36 @@ import { redirect } from 'next/navigation'
 import LecturerDashboard from '@/components/lecturer/LecturerDashboard'
 
 export default async function LecturerPage() {
-  // TEMPORARILY DISABLED FOR DEVELOPMENT - Authentication checks commented out
-  // TODO: Re-enable authentication once lecturer and student dashboards are built
-  
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // if (!user) {
-  //   redirect('/auth/login')
-  // }
+  if (!user) {
+    redirect('/auth/login')
+  }
+
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (userProfile?.role !== 'lecturer') {
+    redirect('/student')
+  }
 
   // Fetch courses with enrollment counts
-  // Temporarily fetch all courses for development (remove lecturer_id filter)
-  const { data: courses } = await supabase
+  // Fetch only courses owned by the lecturer
+  const coursesQuery = supabase
     .from('courses')
     .select(`
       *,
       course_enrollments(count)
     `)
-    // .eq('lecturer_id', user.id) // Temporarily disabled for development
     .order('created_at', { ascending: false })
+
+  const { data: courses } = await coursesQuery.eq('lecturer_id', user.id)
 
   // Transform the data to include enrollment_count
   const coursesWithEnrollment = (courses || []).map(course => ({
@@ -33,9 +41,9 @@ export default async function LecturerPage() {
   }))
 
   return (
-    <LecturerDashboard 
-      initialCourses={coursesWithEnrollment} 
-      userEmail={user?.email || 'dev@lecturia.dev'} 
+    <LecturerDashboard
+      initialCourses={coursesWithEnrollment}
+      userEmail={user.email || 'lecturer@lecturia.dev'}
     />
   )
 }

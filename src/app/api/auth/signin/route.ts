@@ -1,10 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest) {
   const { email, password } = await request.json()
   const requestUrl = new URL(request.url)
-
   if (!email || !password) {
     return NextResponse.json(
       { error: 'Email and password are required' },
@@ -12,9 +12,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Create response with redirect to dashboard (will be updated based on role)
+  // Create JSON response so fetch() callers can parse it reliably
+  // Client will handle redirect after successful sign-in.
   const redirectUrl = new URL('/dashboard', requestUrl.origin)
-  let response = NextResponse.redirect(redirectUrl)
+  let response = NextResponse.json({ success: true, redirectTo: redirectUrl.pathname })
 
   // Create Supabase client for authentication
   const supabase = createServerClient(
@@ -53,6 +54,31 @@ export async function POST(request: NextRequest) {
       { error: 'Failed to create session' },
       { status: 500 }
     )
+  }
+
+  try {
+    const adminClient = createAdminClient()
+    const roleFromMetadata = authData.user.user_metadata?.role
+    if (roleFromMetadata) {
+      const { error } = await adminClient
+        .from('users')
+        .upsert(
+          {
+            id: authData.user.id,
+            email: authData.user.email!,
+            role: roleFromMetadata,
+          },
+          {
+            onConflict: 'id',
+          }
+        )
+
+      if (error) {
+        console.error('Failed to sync user profile:', error)
+      }
+    }
+  } catch (error) {
+    console.error('Failed to sync user profile:', error)
   }
 
   // Session is automatically set via cookies in the response

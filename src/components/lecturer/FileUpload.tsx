@@ -27,6 +27,7 @@ export default function FileUpload({ courseId }: FileUploadProps) {
       const response = await fetch('/api/files/upload', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       })
 
       if (response.ok) {
@@ -106,4 +107,3 @@ export default function FileUpload({ courseId }: FileUploadProps) {
     </div>
   )
 }
-

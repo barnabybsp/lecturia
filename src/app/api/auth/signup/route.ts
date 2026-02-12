@@ -5,7 +5,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export async function POST(request: NextRequest) {
   const { email, password, role } = await request.json()
   const requestUrl = new URL(request.url)
-
   if (!email || !password) {
     return NextResponse.json(
       { error: 'Email and password are required' },
@@ -47,7 +46,9 @@ export async function POST(request: NextRequest) {
     }
   )
 
-  // Sign up the user with Supabase Auth (no email confirmation required)
+  const adminClient = createAdminClient()
+
+  // Sign up the user with Supabase Auth
   const { data: authData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
@@ -56,8 +57,6 @@ export async function POST(request: NextRequest) {
       data: {
         role, // Store role in user metadata for later use
       },
-      // Disable email confirmation requirement
-      emailConfirmationRequired: false,
     },
   })
 
@@ -74,26 +73,29 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-
-  // Store role in users table using admin client
-  const adminClient = createAdminClient()
-  const { error: userError } = await adminClient
-    .from('users')
-    .upsert({
-      id: authData.user.id,
-      email: authData.user.email!,
-      role,
-    }, {
-      onConflict: 'id'
-    })
-
-  if (userError) {
-    console.error('Failed to store user role:', userError)
-    // Don't fail the signup if role storage fails - it can be set later
+  try {
+    const { error } = await adminClient
+      .from('users')
+      .upsert(
+        {
+          id: authData.user.id,
+          email: authData.user.email!,
+          role,
+        },
+        {
+          onConflict: 'id',
+        }
+      )
+    if (error) {
+      console.error('Failed to store user role:', error)
+    }
+  } catch (error) {
+    console.error('Failed to store user role:', error)
   }
 
-  // Update response with success message
-  response = NextResponse.json({
+  // Build a new response with the success payload, then copy over
+  // the auth cookies that the Supabase client wrote to the original response.
+  const finalResponse = NextResponse.json({
     message: 'Account created successfully. You are now signed in.',
     user: {
       id: authData.user.id,
@@ -102,7 +104,12 @@ export async function POST(request: NextRequest) {
     session: authData.session,
   })
 
-  return response
+  // Preserve auth cookies from the original response
+  response.cookies.getAll().forEach((cookie) => {
+    finalResponse.cookies.set(cookie.name, cookie.value)
+  })
+
+  return finalResponse
 }
 
 

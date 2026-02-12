@@ -2,6 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { GraduationCap, BookOpen, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -19,7 +24,7 @@ export default function LoginPage() {
 
     try {
       const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/signin'
-      const body = isSignUp 
+      const body = isSignUp
         ? JSON.stringify({ email, password, role })
         : JSON.stringify({ email, password })
 
@@ -27,6 +32,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,
+        credentials: 'include',
       })
 
       const data = await response.json()
@@ -36,14 +42,11 @@ export default function LoginPage() {
         setLoading(false)
       } else {
         if (isSignUp) {
-          // Sign up success - show verification message
           setMessage('Account created! Please check your email to verify your account before signing in.')
           setIsSignUp(false)
           setPassword('')
           setLoading(false)
         } else {
-          // Sign in success - redirect will happen automatically via server response
-          // But also manually redirect as fallback
           window.location.href = '/dashboard'
         }
       }
@@ -54,30 +57,41 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
-        <div>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
-            {isSignUp ? 'Create an account' : 'Sign in to Lecturia'}
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Get AI-powered answers from your course materials
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      {/* Background decoration */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-chart-2/5 rounded-full blur-3xl" />
+      </div>
+
+      <Card className="relative max-w-md w-full p-8 bg-card border shadow-lg">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-md mx-auto mb-4">
+            <GraduationCap className="h-7 w-7 text-primary-foreground" />
+          </div>
+          <h1 className="text-2xl font-display font-semibold text-foreground">
+            {isSignUp ? 'Create an account' : 'Welcome back'}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            AI-powered learning assistance for your courses
           </p>
         </div>
 
         {/* Toggle between Sign In and Sign Up */}
-        <div className="flex gap-2 border-b border-gray-200">
+        <div className="flex gap-1 p-1 bg-muted rounded-lg mb-6">
           <button
             type="button"
             onClick={() => {
               setIsSignUp(false)
               setMessage('')
             }}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
+            className={cn(
+              "flex-1 py-2 text-sm font-medium rounded-md transition-all",
               !isSignUp
-                ? 'text-indigo-600 border-b-2 border-indigo-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
           >
             Sign In
           </button>
@@ -87,47 +101,46 @@ export default function LoginPage() {
               setIsSignUp(true)
               setMessage('')
             }}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
+            className={cn(
+              "flex-1 py-2 text-sm font-medium rounded-md transition-all",
               isSignUp
-                ? 'text-indigo-600 border-b-2 border-indigo-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
           >
             Sign Up
           </button>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-3">
             <div>
-              <label htmlFor="email" className="sr-only">
+              <label htmlFor="email" className="block text-sm font-medium mb-1.5">
                 Email address
               </label>
-              <input
+              <Input
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
+              <label htmlFor="password" className="block text-sm font-medium mb-1.5">
                 Password
               </label>
-              <input
+              <Input
                 id="password"
                 name="password"
                 type="password"
                 autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 required
                 minLength={6}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                placeholder={isSignUp ? 'Create a password (min 6 characters)' : 'Enter your password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -137,63 +150,97 @@ export default function LoginPage() {
           {/* Role selection - only shown during Sign Up */}
           {isSignUp && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-3">
                 I am a:
               </label>
-              <div className="flex gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="student"
-                    checked={role === 'student'}
-                    onChange={(e) => setRole(e.target.value as 'student')}
-                    className="mr-2"
-                  />
-                  Student
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="lecturer"
-                    checked={role === 'lecturer'}
-                    onChange={(e) => setRole(e.target.value as 'lecturer')}
-                    className="mr-2"
-                  />
-                  Lecturer
-                </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRole('student')}
+                  className={cn(
+                    "flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all",
+                    role === 'student'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <BookOpen className={cn(
+                    "h-6 w-6",
+                    role === 'student' ? 'text-primary' : 'text-muted-foreground'
+                  )} />
+                  <span className={cn(
+                    "text-sm font-medium",
+                    role === 'student' ? 'text-primary' : 'text-foreground'
+                  )}>
+                    Student
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole('lecturer')}
+                  className={cn(
+                    "flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all",
+                    role === 'lecturer'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <Users className={cn(
+                    "h-6 w-6",
+                    role === 'lecturer' ? 'text-primary' : 'text-muted-foreground'
+                  )} />
+                  <span className={cn(
+                    "text-sm font-medium",
+                    role === 'lecturer' ? 'text-primary' : 'text-foreground'
+                  )}>
+                    Lecturer
+                  </span>
+                </button>
               </div>
             </div>
           )}
 
           {message && (
             <div
-              className={`p-3 rounded-md ${
+              className={cn(
+                "p-3 rounded-lg text-sm",
                 message.includes('check your email') || message.includes('Account created')
-                  ? 'bg-green-50 text-green-800'
-                  : 'bg-red-50 text-red-800'
-              }`}
+                  ? 'bg-chart-2/10 text-chart-2 border border-chart-2/20'
+                  : 'bg-destructive/10 text-destructive border border-destructive/20'
+              )}
             >
               {message}
             </div>
           )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading 
-                ? (isSignUp ? 'Creating account...' : 'Signing in...') 
-                : (isSignUp ? 'Sign up' : 'Sign in')
-              }
-            </button>
-          </div>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-primary hover:bg-primary/90"
+          >
+            {loading
+              ? (isSignUp ? 'Creating account...' : 'Signing in...')
+              : (isSignUp ? 'Create account' : 'Sign in')
+            }
+          </Button>
         </form>
-      </div>
+
+        {!isSignUp && (
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Don't have an account?{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(true)
+                setMessage('')
+              }}
+              className="text-primary hover:underline font-medium"
+            >
+              Sign up
+            </button>
+          </p>
+        )}
+      </Card>
     </div>
   )
 }
-

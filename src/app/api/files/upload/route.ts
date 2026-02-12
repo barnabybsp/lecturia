@@ -14,7 +14,10 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData()
-  const files = formData.getAll('files') as File[]
+  const files = [
+    ...(formData.getAll('files') as File[]),
+    formData.get('file') as File | null,
+  ].filter(Boolean) as File[]
   const courseId = formData.get('courseId') as string
 
   if (!courseId) {
@@ -23,19 +26,30 @@ export async function POST(request: Request) {
       { status: 400 }
     )
   }
+  if (files.length === 0) {
+    return NextResponse.json(
+      { error: 'No files provided' },
+      { status: 400 }
+    )
+  }
 
-  // Verify user is lecturer for this course
-  const { data: course } = await supabase
+  const adminClient = createAdminClient()
+
+  // Verify course exists and user is lecturer for this course (bypass RLS)
+  const { data: course } = await adminClient
     .from('courses')
     .select('lecturer_id')
     .eq('id', courseId)
     .single()
 
-  if (!course || course.lecturer_id !== user.id) {
+  if (!course) {
+    return NextResponse.json({ error: 'Course not found' }, { status: 404 })
+  }
+
+  if (course.lecturer_id !== user.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
   }
 
-  const adminClient = createAdminClient()
   const uploadedDocuments = []
 
   for (const file of files) {
@@ -93,7 +107,12 @@ export async function POST(request: Request) {
     // Process embeddings in background (don't await)
     fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/files/generate-embeddings`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.INTERNAL_API_KEY
+          ? { 'x-internal-key': process.env.INTERNAL_API_KEY }
+          : {}),
+      },
       body: JSON.stringify({
         documentIds: uploadedDocuments.map((d) => d.id),
       }),
@@ -107,4 +126,3 @@ export async function POST(request: Request) {
     documents: uploadedDocuments,
   })
 }
-
