@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Toggle } from "@/components/ui/toggle"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Dialog,
   DialogContent,
@@ -31,6 +30,8 @@ import {
   Upload,
   Plus,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
   Calendar,
   MessageSquare,
   Users,
@@ -87,6 +88,7 @@ interface LecturerDashboardProps {
 export default function LecturerDashboard({ initialCourses, userEmail }: LecturerDashboardProps) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [courses, setCourses] = useState<CourseWithEnrollment[]>(initialCourses)
   const [activeCourse, setActiveCourse] = useState<CourseWithEnrollment | null>(initialCourses[0] || null)
   const [documents, setDocuments] = useState<Document[]>([])
@@ -437,35 +439,61 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-16 bottom-0 w-64 bg-sidebar border-r border-sidebar-border overflow-hidden transition-transform duration-300 z-40",
+          "fixed left-0 top-16 bottom-0 w-64 bg-sidebar border-r border-sidebar-border overflow-visible transition-[width,transform] duration-300 z-40",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          isSidebarCollapsed ? "lg:w-20" : "lg:w-64",
           "lg:translate-x-0"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Create Course Button */}
-          <div className="p-4 border-b border-sidebar-border">
+          <div className={cn("border-b border-sidebar-border", isSidebarCollapsed ? "p-2" : "p-4")}>
+            <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center" : "justify-end")}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+                className="mb-2 h-8 w-8 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                {isSidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </Button>
+            </div>
             <Button
-              className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+              aria-label="Create new course"
+              className={cn(
+                "w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm",
+                isSidebarCollapsed ? "justify-center px-0" : "justify-start gap-2",
+              )}
               onClick={() => setIsCreateCourseOpen(true)}
             >
               <Plus className="h-4 w-4" />
-              <span>New Course</span>
+              {!isSidebarCollapsed && <span>New Course</span>}
             </Button>
           </div>
 
           {/* Course List */}
-          <ScrollArea className="flex-1 px-3">
+          <div className={cn("flex-1 overflow-y-auto overflow-x-visible", isSidebarCollapsed ? "px-2" : "px-3")}>
             <div className="py-4">
-              <h2 className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h2
+                className={cn(
+                  "mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground",
+                  isSidebarCollapsed ? "px-1 text-center" : "px-3",
+                )}
+              >
                 Your Courses
               </h2>
               <div className="space-y-1">
                 {courses.length === 0 ? (
-                  <div className="px-3 py-8 text-center">
+                  <div className={cn("py-8 text-center", isSidebarCollapsed ? "px-1" : "px-3")}>
                     <BookOpen className="h-8 w-8 mx-auto mb-3 text-muted-foreground/50" />
-                    <p className="text-sm text-muted-foreground">No courses yet</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">Create your first course</p>
+                    {!isSidebarCollapsed && (
+                      <>
+                        <p className="text-sm text-muted-foreground">No courses yet</p>
+                        <p className="text-xs text-muted-foreground/70 mt-1">Create your first course</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   courses.map((course) => (
@@ -475,51 +503,99 @@ export default function LecturerDashboard({ initialCourses, userEmail }: Lecture
                           setActiveCourse(course)
                           setSidebarOpen(false)
                         }}
+                        aria-label={course.name}
                         className={cn(
-                          "flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all",
+                          "flex w-full rounded-lg text-left transition-all",
                           course.id === activeCourse?.id
                             ? "bg-primary text-primary-foreground shadow-sm"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent",
+                          isSidebarCollapsed ? "h-11 items-center justify-center px-0 py-0" : "items-start gap-3 px-3 py-3"
                         )}
                       >
-                        <FileText className={cn(
-                          "mt-0.5 h-4 w-4 shrink-0",
-                          course.id === activeCourse?.id ? "text-primary-foreground" : "text-primary"
-                        )} />
-                        <div className="flex-1 overflow-hidden">
-                          <div className="font-medium text-sm truncate">{course.name}</div>
-                          <div className={cn(
-                            "text-xs mt-0.5",
-                            course.id === activeCourse?.id
-                              ? "text-primary-foreground/70"
-                              : "text-muted-foreground"
-                          )}>
-                            {course.enrollment_count || 0} students
+                        <FileText
+                          className={cn(
+                            "h-4 w-4 shrink-0",
+                            course.id === activeCourse?.id ? "text-primary-foreground" : "text-primary",
+                            !isSidebarCollapsed && "mt-0.5",
+                          )}
+                        />
+                        {!isSidebarCollapsed && (
+                          <div className="flex-1 overflow-hidden">
+                            <div className="font-medium text-sm truncate">{course.name}</div>
+                            <div className={cn(
+                              "text-xs mt-0.5",
+                              course.id === activeCourse?.id
+                                ? "text-primary-foreground/70"
+                                : "text-muted-foreground"
+                            )}>
+                              {course.enrollment_count || 0} students
+                            </div>
+                          </div>
+                        )}
+                      </button>
+
+                      {!isSidebarCollapsed && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setCourseToDelete(course)
+                            setIsDeleteDialogOpen(true)
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-destructive"
+                          title="Delete course"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+
+                      {isSidebarCollapsed && (
+                        <div className="pointer-events-none invisible absolute left-full top-1/2 z-40 w-64 -translate-y-1/2 pl-2 opacity-0 transition-all duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100">
+                          <div className="rounded-xl border border-sidebar-border bg-card p-3 shadow-xl">
+                            <div className="text-sm font-medium text-card-foreground">{course.name}</div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {course.enrollment_count || 0} students
+                            </p>
+                            <div className="mt-3 flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveCourse(course)
+                                  setSidebarOpen(false)
+                                }}
+                                className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                              >
+                                Open
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCourseToDelete(course)
+                                  setIsDeleteDialogOpen(true)
+                                }}
+                                className="inline-flex h-8 items-center rounded-md bg-destructive/90 px-3 text-xs font-medium text-destructive-foreground hover:bg-destructive"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setCourseToDelete(course)
-                          setIsDeleteDialogOpen(true)
-                        }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 text-destructive"
-                        title="Delete course"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      )}
                     </div>
                   ))
                 )}
               </div>
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 mt-16 p-6 lg:p-8">
+      <main
+        className={cn(
+          "mt-16 p-6 lg:p-8 transition-[margin] duration-300",
+          isSidebarCollapsed ? "lg:ml-20" : "lg:ml-64",
+        )}
+      >
         {activeCourse ? (
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Course Header */}

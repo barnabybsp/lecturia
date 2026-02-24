@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface InviteLinkProps {
   inviteCode: string
@@ -8,10 +8,18 @@ interface InviteLinkProps {
 
 export default function InviteLink({ inviteCode }: InviteLinkProps) {
   const [copied, setCopied] = useState(false)
-  const inviteUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/student/join?code=${inviteCode}`
+  const [origin, setOrigin] = useState('')
+
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
+
+  const invitePath = `/student/join?code=${inviteCode}`
+  const inviteUrl = origin ? `${origin}${invitePath}` : invitePath
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(inviteUrl)
+    const urlToCopy = `${window.location.origin}${invitePath}`
+    navigator.clipboard.writeText(urlToCopy)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -38,4 +46,3 @@ export default function InviteLink({ inviteCode }: InviteLinkProps) {
     </div>
   )
 }
-

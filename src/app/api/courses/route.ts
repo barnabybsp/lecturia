@@ -89,9 +89,10 @@ export async function GET() {
     )
   }
 
+  const adminClient = createAdminClient()
   const lecturerId = user.id
 
-  const { data, error } = await supabase
+  const { data: courses, error } = await adminClient
     .from('courses')
     .select('*')
     .eq('lecturer_id', lecturerId)
@@ -101,7 +102,32 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
-  return NextResponse.json(data)
+  const courseIds = (courses || []).map((course) => course.id)
+  let enrollmentCountByCourse = new Map<string, number>()
+
+  if (courseIds.length > 0) {
+    const { data: enrollments, error: enrollmentError } = await adminClient
+      .from('course_enrollments')
+      .select('course_id')
+      .in('course_id', courseIds)
+
+    if (enrollmentError) {
+      return NextResponse.json({ error: enrollmentError.message }, { status: 400 })
+    }
+
+    enrollmentCountByCourse = (enrollments || []).reduce<Map<string, number>>((acc, enrollment) => {
+      const current = acc.get(enrollment.course_id) || 0
+      acc.set(enrollment.course_id, current + 1)
+      return acc
+    }, new Map<string, number>())
+  }
+
+  const coursesWithEnrollment = (courses || []).map((course) => ({
+    ...course,
+    enrollment_count: enrollmentCountByCourse.get(course.id) || 0,
+  }))
+
+  return NextResponse.json(coursesWithEnrollment)
 }
 
 export async function DELETE(request: Request) {
